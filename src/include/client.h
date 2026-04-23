@@ -88,37 +88,14 @@ void Decide() {
   int dx[] = {-1, -1, -1, 0, 0, 1, 1, 1};
   int dy[] = {-1, 0, 1, -1, 1, -1, 0, 1};
   
-  // Strategy 1: Auto-explore grids where all mines are marked
-  for (int i = 0; i < rows; i++) {
-    for (int j = 0; j < columns; j++) {
-      if (current_map[i][j] >= '0' && current_map[i][j] <= '8') {
-        int mine_count = current_map[i][j] - '0';
-        int marked_count = 0;
-        
-        for (int k = 0; k < 8; k++) {
-          int ni = i + dx[k];
-          int nj = j + dy[k];
-          if (ni >= 0 && ni < rows && nj >= 0 && nj < columns && current_map[ni][nj] == '@') {
-            marked_count++;
-          }
-        }
-        
-        if (marked_count == mine_count) {
-          Execute(i, j, 2);  // Auto-explore
-          return;
-        }
-      }
-    }
-  }
-  
-  // Strategy 2: Mark obvious mines
+  // Strategy 1: Visit safe cells or auto-explore
   for (int i = 0; i < rows; i++) {
     for (int j = 0; j < columns; j++) {
       if (current_map[i][j] >= '0' && current_map[i][j] <= '8') {
         int mine_count = current_map[i][j] - '0';
         int marked_count = 0;
         int unknown_count = 0;
-        std::vector<std::pair<int, int>> unknown_cells;
+        int unknown_r = -1, unknown_c = -1;
         
         for (int k = 0; k < 8; k++) {
           int ni = i + dx[k];
@@ -128,52 +105,32 @@ void Decide() {
               marked_count++;
             } else if (current_map[ni][nj] == '?') {
               unknown_count++;
-              unknown_cells.push_back({ni, nj});
+              unknown_r = ni;
+              unknown_c = nj;
             }
           }
         }
         
+        // If all mines marked, auto-explore or visit
+        if (marked_count == mine_count && unknown_count > 0) {
+          Execute(i, j, 2);  // Auto-explore
+          return;
+        }
+        
+        // If all remaining unknowns are mines, mark one
         if (unknown_count > 0 && marked_count + unknown_count == mine_count) {
-          Execute(unknown_cells[0].first, unknown_cells[0].second, 1);
+          Execute(unknown_r, unknown_c, 1);  // Mark mine
           return;
         }
       }
     }
   }
   
-  // Strategy 3: Visit safe cells
-  for (int i = 0; i < rows; i++) {
-    for (int j = 0; j < columns; j++) {
-      if (current_map[i][j] >= '0' && current_map[i][j] <= '8') {
-        int mine_count = current_map[i][j] - '0';
-        int marked_count = 0;
-        std::vector<std::pair<int, int>> unknown_cells;
-        
-        for (int k = 0; k < 8; k++) {
-          int ni = i + dx[k];
-          int nj = j + dy[k];
-          if (ni >= 0 && ni < rows && nj >= 0 && nj < columns) {
-            if (current_map[ni][nj] == '@') {
-              marked_count++;
-            } else if (current_map[ni][nj] == '?') {
-              unknown_cells.push_back({ni, nj});
-            }
-          }
-        }
-        
-        if (marked_count == mine_count && !unknown_cells.empty()) {
-          Execute(unknown_cells[0].first, unknown_cells[0].second, 0);
-          return;
-        }
-      }
-    }
-  }
-  
-  // Strategy 4: Pick first unknown cell (fallback)
+  // Strategy 2: Pick first unknown cell
   for (int i = 0; i < rows; i++) {
     for (int j = 0; j < columns; j++) {
       if (current_map[i][j] == '?') {
-        Execute(i, j, 0);
+        Execute(i, j, 0);  // Visit
         return;
       }
     }
