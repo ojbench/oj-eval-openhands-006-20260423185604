@@ -111,7 +111,7 @@ void Decide() {
     }
   }
   
-  // Strategy 2: Mark obvious mines (if a visited grid has k unknown neighbors and its number is k)
+  // Strategy 2: Mark obvious mines
   for (int i = 0; i < rows; i++) {
     for (int j = 0; j < columns; j++) {
       if (current_map[i][j] >= '0' && current_map[i][j] <= '8') {
@@ -133,16 +133,15 @@ void Decide() {
           }
         }
         
-        // If remaining unknown cells equal remaining mines, mark them all
         if (unknown_count > 0 && marked_count + unknown_count == mine_count) {
-          Execute(unknown_cells[0].first, unknown_cells[0].second, 1);  // Mark mine
+          Execute(unknown_cells[0].first, unknown_cells[0].second, 1);
           return;
         }
       }
     }
   }
   
-  // Strategy 3: Visit safe cells (if all mines around a cell are already marked)
+  // Strategy 3: Visit safe cells
   for (int i = 0; i < rows; i++) {
     for (int j = 0; j < columns; j++) {
       if (current_map[i][j] >= '0' && current_map[i][j] <= '8') {
@@ -162,89 +161,19 @@ void Decide() {
           }
         }
         
-        // If all mines are marked, visit unknown cells
         if (marked_count == mine_count && !unknown_cells.empty()) {
-          Execute(unknown_cells[0].first, unknown_cells[0].second, 0);  // Visit
+          Execute(unknown_cells[0].first, unknown_cells[0].second, 0);
           return;
         }
       }
     }
   }
   
-  // Strategy 4: Advanced reasoning - find cells that must be safe
-  // Look for patterns where we can deduce safe cells
-  for (int i = 0; i < rows; i++) {
-    for (int j = 0; j < columns; j++) {
-      if (current_map[i][j] >= '0' && current_map[i][j] <= '8') {
-        int mine_count = current_map[i][j] - '0';
-        int marked_count = 0;
-        std::vector<std::pair<int, int>> unknown_cells;
-        
-        for (int k = 0; k < 8; k++) {
-          int ni = i + dx[k];
-          int nj = j + dy[k];
-          if (ni >= 0 && ni < rows && nj >= 0 && nj < columns) {
-            if (current_map[ni][nj] == '@') {
-              marked_count++;
-            } else if (current_map[ni][nj] == '?') {
-              unknown_cells.push_back({ni, nj});
-            }
-          }
-        }
-        
-        // Check each unknown cell to see if it's safe
-        for (auto& cell : unknown_cells) {
-          bool is_safe = true;
-          
-          // Check all neighbors of this unknown cell
-          for (int k = 0; k < 8; k++) {
-            int ni = cell.first + dx[k];
-            int nj = cell.second + dy[k];
-            if (ni >= 0 && ni < rows && nj >= 0 && nj < columns && 
-                current_map[ni][nj] >= '0' && current_map[ni][nj] <= '8') {
-              int neighbor_mine_count = current_map[ni][nj] - '0';
-              int neighbor_marked = 0;
-              int neighbor_unknown = 0;
-              
-              for (int m = 0; m < 8; m++) {
-                int nni = ni + dx[m];
-                int nnj = nj + dy[m];
-                if (nni >= 0 && nni < rows && nnj >= 0 && nnj < columns) {
-                  if (current_map[nni][nnj] == '@') {
-                    neighbor_marked++;
-                  } else if (current_map[nni][nnj] == '?') {
-                    neighbor_unknown++;
-                  }
-                }
-              }
-              
-              // If this cell being a mine would exceed the neighbor's mine count, it's safe
-              if (neighbor_marked >= neighbor_mine_count) {
-                continue;  // This neighbor says it's safe
-              }
-              
-              // If this is the only unknown cell and one more mine is needed, it's a mine
-              if (neighbor_unknown == 1 && neighbor_marked + 1 == neighbor_mine_count) {
-                is_safe = false;
-                break;
-              }
-            }
-          }
-          
-          if (is_safe) {
-            Execute(cell.first, cell.second, 0);  // Visit safe cell
-            return;
-          }
-        }
-      }
-    }
-  }
-  
-  // Strategy 5: If no safe move found, pick the first unknown cell (fallback)
+  // Strategy 4: Pick first unknown cell (fallback)
   for (int i = 0; i < rows; i++) {
     for (int j = 0; j < columns; j++) {
       if (current_map[i][j] == '?') {
-        Execute(i, j, 0);  // Visit
+        Execute(i, j, 0);
         return;
       }
     }
